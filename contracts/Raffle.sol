@@ -13,7 +13,7 @@ import "@chainlink/contracts/src/v0.8/interfaces/KeeperCompatibleInterface.sol";
 
 error Raffle__NotEnoughETHEntered();
 error Raffle__TransferFailed();
-error Raffle_NotOpen();
+error Raffle__NotOpen();
 error Raffle__UpKeepNotNeeded(uint256 currentBalance, uint256 numPLayers, uint256 raffleState);
 
 /**
@@ -75,7 +75,7 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
             revert Raffle__NotEnoughETHEntered();
         }
         if (s_raffleState != RaffleState.OPEN) {
-            revert Raffle_NotOpen();
+            revert Raffle__NotOpen();
         }
         s_players.push(payable(msg.sender));
         // Emit an event when we update a dynamic array or mapping
@@ -85,7 +85,7 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
 
     /**
      * @dev this is the function that the Chainlink Keeper nodes call
-     * they look for the 'upKeepNeeded' to return true.
+     * they look for the 'upkeepNeeded' to return true.
      * The following should be true in order to return true:
      * 1. Our time interval should have passed
      * 2. The lottery should have at least 1 player and have some ETH
@@ -94,17 +94,17 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
      */
     function checkUpkeep(
         bytes memory /*checkData*/
-    ) public view returns (bool upKeepNeeded, bytes memory /* performData */) {
+    ) public view returns (bool upkeepNeeded, bytes memory /* performData */) {
         bool isOpen = RaffleState.OPEN == s_raffleState;
         bool timePassed = ((block.timestamp - s_lastTimeStamps) > i_interval);
         bool hasPlayers = (s_players.length > 0);
         bool hasBalance = address(this).balance > 0;
-        upKeepNeeded = (isOpen && timePassed && hasPlayers && hasBalance);
+        upkeepNeeded = (isOpen && timePassed && hasPlayers && hasBalance);
     }
 
     function performUpkeep(bytes calldata /* performData */) external override {
-        (bool upKeepNeeded, ) = checkUpkeep("");
-        if (!upKeepNeeded) {
+        (bool upkeepNeeded, ) = checkUpkeep("");
+        if (!upkeepNeeded) {
             revert Raffle__UpKeepNotNeeded(
                 address(this).balance,
                 s_players.length,
@@ -172,5 +172,9 @@ contract Raffle is VRFConsumerBaseV2, KeeperCompatibleInterface {
 
     function getRequestConfirmations() public pure returns (uint256) {
         return REQUEST_CONFIRMATIONS;
+    }
+
+    function getInterval() public view returns (uint256) {
+        return i_interval;
     }
 }
